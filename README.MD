@@ -16,7 +16,9 @@ weixin.oauth2redirectUri=http://eca3681.ngrok.natapp.cn
 
 
 ## jssdk
+#### 后台请求
 ``` java
+
     @RequestMapping("/ticket")
     @ResponseBody
     public String getTsapiTicket() throws Exception {
@@ -28,43 +30,43 @@ weixin.oauth2redirectUri=http://eca3681.ngrok.natapp.cn
     public String getJsSdkSign(String url) throws Exception {
         return new Gson().toJson(wxMpService.createJsapiSignature(url));
     }
+    
 ```
 
-``` html
- $(".jssdk").on("click", function () {
-            wx.scanQRCode({
-                desc: 'scanQRCode desc'
-            });
-        });
-        $.ajax({
-            url: "http://eca3681.ngrok.natapp.cn/ticket",
-            success: function (data) {
-                $.get("http://eca3681.ngrok.natapp.cn/sign",
-                        {
-                            url: location.href.split('#')[0]
-                        },
-                        function (sign) {
-                            console.log("sign:" + sign)
-                            wx.config({
-                                debug: true,
-                                appId: sign.appid,
-                                timestamp: sign.timestamp,
-                                nonceStr: sign.noncestr,
-                                signature: sign.signature,
-                                jsApiList: [
-                                    'scanQRCode'
-                                ]
-                            });
-                        },
-                        'json'
-                );
-            }
-        });
+#### js代码
+
+``` 
+
+$(".jssdk").on("click", function () {
+    wx.scanQRCode({
+        desc: 'scanQRCode desc'
+    });
+});
+$.ajax({
+    url: "http://eca3681.ngrok.natapp.cn/ticket",
+    success: function (data) {
+        $.get("http://eca3681.ngrok.natapp.cn/sign",
+                {
+                    url: location.href.split('#')[0]
+                },
+                function (sign) {
+                    console.log("sign:" + sign)
+                    wx.config({
+                        debug: true,
+                        appId: sign.appid,
+                        timestamp: sign.timestamp,
+                        nonceStr: sign.noncestr,
+                        signature: sign.signature,
+                        jsApiList: [
+                            'scanQRCode'
+                        ]
+                    });
+                },
+                'json'
+        );
+    }
+});
 ```
-
-
-
-
 
 ## 新增@OAuthRequired 注解
 在需要获取用户信息的Controller上面，添加注解
