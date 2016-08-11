@@ -1,6 +1,7 @@
 package com.htdc.weixin.controller;
 
 import com.google.gson.Gson;
+import com.htdc.weixin.interceptor.OAuthRequired;
 import com.htdc.weixin.util.Constants;
 import me.chanjar.weixin.common.api.WxConsts;
 import me.chanjar.weixin.common.bean.WxJsapiSignature;
@@ -29,40 +30,20 @@ public class IndexController {
     protected WxMpService wxMpService;
 
     @RequestMapping("/hello")
-    public String hello(ModelMap modelMap, HttpSession session,
-                        @RequestParam(required = false) String code) {
+    @OAuthRequired
+    public String hello(ModelMap modelMap, HttpSession session) {
         WxMpUser wxMpUser = (WxMpUser) session.getAttribute("wxMpUser");
-        String openId;
-        if (wxMpUser != null && !StringUtils.isEmpty(wxMpUser.getOpenId())) {
-            openId = wxMpUser.getOpenId();
-        } else {
-            if (StringUtils.isEmpty(code)) {
-                return "redirect:" + wxMpService.oauth2buildAuthorizationUrl(configStorage.getOauth2redirectUri() + "/hello", WxConsts.OAUTH2_SCOPE_USER_INFO, null);
-            } else {
-                WxMpOAuth2AccessToken accessToken = null;
-                try {
-                    accessToken = wxMpService.oauth2getAccessToken(code);
-                    wxMpUser = wxMpService.userInfo(accessToken.getOpenId(), null);
-                    session.setAttribute("wxMpUser", wxMpUser);
-                    openId = wxMpUser.getOpenId();
-                } catch (WxErrorException e) {
-                    return "redirect:" + wxMpService.oauth2buildAuthorizationUrl(configStorage.getOauth2redirectUri() + "/hello", WxConsts.OAUTH2_SCOPE_USER_INFO, null);
-                }
-            }
-        }
+        String openId = wxMpUser.getOpenId();
         modelMap.put("openId", openId);
         modelMap.put("wxMpUser", new Gson().toJson(wxMpUser));
         return "hello";
     }
 
     @RequestMapping("/world")
+    @OAuthRequired
     public String world(ModelMap modelMap, HttpSession session) {
         WxMpUser wxMpUser = (WxMpUser) session.getAttribute("wxMpUser");
-        String openId;
-        if (wxMpUser == null || StringUtils.isEmpty(wxMpUser.getOpenId())) {
-            return "redirect: " + configStorage.getOauth2redirectUri() + "/hello";
-        }
-        openId = wxMpUser.getOpenId();
+        String openId = wxMpUser.getOpenId();
         modelMap.put("openId", openId);
         modelMap.put("wxMpUser", new Gson().toJson(wxMpUser));
         return "world";

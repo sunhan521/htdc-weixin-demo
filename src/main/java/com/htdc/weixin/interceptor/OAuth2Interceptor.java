@@ -1,5 +1,13 @@
 package com.htdc.weixin.interceptor;
 
+import me.chanjar.weixin.common.api.WxConsts;
+import me.chanjar.weixin.common.exception.WxErrorException;
+import me.chanjar.weixin.common.util.StringUtils;
+import me.chanjar.weixin.mp.api.WxMpConfigStorage;
+import me.chanjar.weixin.mp.api.WxMpService;
+import me.chanjar.weixin.mp.bean.result.WxMpOAuth2AccessToken;
+import me.chanjar.weixin.mp.bean.result.WxMpUser;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -12,6 +20,10 @@ import java.lang.reflect.Method;
 
 public class OAuth2Interceptor implements HandlerInterceptor {
 
+    @Autowired
+    protected WxMpConfigStorage configStorage;
+    @Autowired
+    protected WxMpService wxMpService;
     /**
      * 在DispatcherServlet完全处理完请求后被调用
      * 当有拦截器抛出异常时,会从当前拦截器往回执行所有的拦截器的afterCompletion()
@@ -48,26 +60,30 @@ public class OAuth2Interceptor implements HandlerInterceptor {
         Method method = handlerMethod.getMethod();
         OAuthRequired annotation = method.getAnnotation(OAuthRequired.class);
         if (annotation != null) {
-            System.out.println("OAuthRequired：你的访问需要获取登录信息！");
-            Object objUid = session.getAttribute("wxMpUser");
-            if (objUid == null) {
+            WxMpUser wxMpUser = (WxMpUser) session.getAttribute("wxMpUser");
+            if (wxMpUser == null) {
                 String resultUrl = request.getRequestURL().toString();
                 String param = request.getQueryString();
                 if (param != null) {
                     resultUrl += "?" + param;
                 }
                 System.out.println("resultUrl=" + resultUrl);
-                try {
-                    resultUrl = java.net.URLEncoder.encode(resultUrl, "utf-8");
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
+                String code = request.getParameter("code");
+                if (StringUtils.isEmpty(code)) {
+                    response.sendRedirect(wxMpService.oauth2buildAuthorizationUrl(resultUrl, WxConsts.OAUTH2_SCOPE_USER_INFO, null)) ;
+                    return false;
+                } else {
+                    WxMpOAuth2AccessToken accessToken = null;
+                    try {
+                        accessToken = wxMpService.oauth2getAccessToken(code);
+                        wxMpUser = wxMpService.userInfo(accessToken.getOpenId(), null);
+                        session.setAttribute("wxMpUser", wxMpUser);
+                    } catch (WxErrorException e) {
+                        response.sendRedirect(wxMpService.oauth2buildAuthorizationUrl(resultUrl, WxConsts.OAUTH2_SCOPE_USER_INFO, null)) ;
+                        return false;
+                    }
                 }
-                //请求的路径
-                String contextPath = request.getContextPath();
-                response.sendRedirect(contextPath + "/oauth2.do?resultUrl=" + resultUrl);
-                return false;
             }
-
         }
         return true;
     }
