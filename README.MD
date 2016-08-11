@@ -1,4 +1,4 @@
-##引入第三方的微信SDK
+## 引入第三方的微信SDK
 https://github.com/chanjarster/weixin-java-tools
 
 ## 更新overrride.properties
